@@ -56,6 +56,7 @@ contract NFTMarketPlace {
         address buyer,
         address seller
     );
+    event ListingDeleted(address nftAddress, uint256 tokenId);
 
     function listItem(
         address nftAddress,
@@ -92,5 +93,33 @@ contract NFTMarketPlace {
         IERC721 nft = IERC721(nftAddress);
         nft.safeTransferFrom(listedItem.seller, msg.sender, tokenId);
         emit Itembought(nftAddress, tokenId, msg.sender, listedItem.seller);
+    }
+
+    function cancelListing(
+        address nftAddress,
+        uint256 tokenId
+    )
+        external
+        isListed(nftAddress, tokenId)
+        onlyOwner(nftAddress, tokenId, msg.sender)
+    {
+        delete (s_listings[nftAddress][tokenId]);
+        emit ListingDeleted(nftAddress, tokenId);
+    }
+
+    function updateListing(
+        address nftAddress,
+        uint256 tokenId,
+        uint256 newPrice
+    )
+        external
+        isListed(nftAddress, tokenId)
+        onlyOwner(nftAddress, tokenId, msg.sender)
+    {
+        if (newPrice <= 0) {
+            revert PriceTooLow();
+        }
+        s_listings[nftAddress][tokenId].price = newPrice;
+        emit ItemListed(nftAddress, tokenId, newPrice);
     }
 }
