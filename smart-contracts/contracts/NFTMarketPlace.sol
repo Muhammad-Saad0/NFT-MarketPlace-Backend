@@ -7,19 +7,29 @@ error PriceTooLow();
 error MarketPlaceNotApproved();
 error AlreadyListed(address nftAdress, uint256 tokenId);
 error OnlyOwnerCanListItems();
+error NotListed(address nftAddress, uint256 tokenId);
+error PriceNotMet(address nftAddress, uint256 tokenId);
 
 contract NFTMarketPlace {
-    struct listing {
+    struct Listing {
         uint256 price;
         address seller;
     }
     //state variables
-    mapping(address => mapping(uint256 => listing)) private s_listings;
+    mapping(address => mapping(uint256 => Listing)) private s_listings;
+    mapping(address => uint256) private s_proceeds;
 
     //modifiers
     modifier notListed(address nftAddress, uint256 tokenId) {
         if (s_listings[nftAddress][tokenId].price > 0) {
             revert AlreadyListed(nftAddress, tokenId);
+        }
+        _;
+    }
+
+    modifier isListed(address nftAddress, uint256 tokenId) {
+        if (s_listings[nftAddress][tokenId].price == 0) {
+            revert NotListed(nftAddress, tokenId);
         }
         _;
     }
@@ -38,6 +48,15 @@ contract NFTMarketPlace {
         _;
     }
 
+    //events
+    event ItemListed(address nftAddress, uint256 tokenId, uint256 price);
+    event Itembought(
+        address nftAddress,
+        uint256 tokenId,
+        address buyer,
+        address seller
+    );
+
     function listItem(
         address nftAddress,
         uint256 tokenId,
@@ -54,6 +73,24 @@ contract NFTMarketPlace {
         if (nft.getApproved(tokenId) != address(this)) {
             revert MarketPlaceNotApproved();
         }
-        s_listings[nftAddress][tokenId] = listing(price, msg.sender);
+        s_listings[nftAddress][tokenId] = Listing(price, msg.sender);
+        emit ItemListed(nftAddress, tokenId, price);
+    }
+
+    function buyItem(
+        address nftAddress,
+        uint256 tokenId
+    ) external payable isListed(nftAddress, tokenId) {
+        Listing memory listedItem = s_listings[nftAddress][tokenId];
+        if (listedItem.price < msg.value) {
+            revert PriceNotMet(nftAddress, tokenId);
+        }
+
+        s_proceeds[listedItem.seller] += msg.value;
+        delete (s_listings[nftAddress][tokenId]);
+
+        IERC721 nft = IERC721(nftAddress);
+        nft.safeTransferFrom(listedItem.seller, msg.sender, tokenId);
+        emit Itembought(nftAddress, tokenId, msg.sender, listedItem.seller);
     }
 }
