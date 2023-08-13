@@ -9,6 +9,7 @@ error AlreadyListed(address nftAdress, uint256 tokenId);
 error OnlyOwnerCanListItems();
 error NotListed(address nftAddress, uint256 tokenId);
 error PriceNotMet(address nftAddress, uint256 tokenId);
+error NoProceeds(address sender);
 
 contract NFTMarketPlace {
     struct Listing {
@@ -58,6 +59,7 @@ contract NFTMarketPlace {
     );
     event ListingDeleted(address nftAddress, uint256 tokenId);
 
+    //------------MAIN FUNCTIONS-----------//
     function listItem(
         address nftAddress,
         uint256 tokenId,
@@ -121,5 +123,27 @@ contract NFTMarketPlace {
         }
         s_listings[nftAddress][tokenId].price = newPrice;
         emit ItemListed(nftAddress, tokenId, newPrice);
+    }
+
+    function withdrawProceeds() external {
+        uint256 proceeds = s_proceeds[msg.sender];
+        if (proceeds <= 0) {
+            revert NoProceeds(msg.sender);
+        }
+        s_proceeds[msg.sender] = 0;
+        (bool success, ) = payable(msg.sender).call{value: proceeds}("");
+        require(success, "Transfer failed");
+    }
+
+    //-------------GETTERS--------------//
+    function getListing(
+        address nftAddress,
+        uint256 tokenId
+    ) external view returns (Listing memory) {
+        return s_listings[nftAddress][tokenId];
+    }
+
+    function getProceeds(address seller) external view returns (uint256) {
+        return s_proceeds[seller];
     }
 }
