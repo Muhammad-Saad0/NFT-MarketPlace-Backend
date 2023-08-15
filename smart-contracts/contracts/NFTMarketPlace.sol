@@ -69,7 +69,7 @@ contract NFTMarketPlace {
         notListed(nftAddress, tokenId)
         onlyOwner(nftAddress, tokenId, msg.sender)
     {
-        if (price < 0) {
+        if (price <= 0) {
             revert PriceTooLow();
         }
         IERC721 nft = IERC721(nftAddress);
