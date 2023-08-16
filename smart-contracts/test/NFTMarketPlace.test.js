@@ -2,6 +2,7 @@ const { ethers, deployments, getNamedAccounts } = require("hardhat");
 const { expect } = require("chai");
 
 const LISTING_PRICE = ethers.utils.parseEther("1");
+const NULL_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 describe("testing NFTMarketPlace", () => {
   let deployer, NFTMarketPlace, BasicNFT, user, tokenId, nftOwner;
@@ -82,5 +83,127 @@ describe("testing NFTMarketPlace", () => {
 
     expect(listedItem.price).to.equal(LISTING_PRICE);
     expect(listedItem.seller).to.equal(nftOwner.address);
+  });
+
+  it("itemListed event was emitted", async () => {
+    await BasicNFT.connect(nftOwner).approve(
+      NFTMarketPlaceAddress,
+      tokenId
+    );
+
+    let tx = await NFTMarketPlace.connect(nftOwner).listItem(
+      BasicNFTAddress,
+      tokenId,
+      LISTING_PRICE
+    );
+    await tx.wait(1);
+
+    const events = await NFTMarketPlace.queryFilter("ItemListed");
+    expect(events[0].args.nftAddress).to.be.equal(BasicNFTAddress);
+    expect(events[0].args.tokenId).to.be.equal(tokenId);
+    expect(events[0].args.price).to.be.equal(LISTING_PRICE);
+  });
+
+  it("reverts if item is already listed", async () => {
+    await BasicNFT.connect(nftOwner).approve(
+      NFTMarketPlaceAddress,
+      tokenId
+    );
+
+    let tx = await NFTMarketPlace.connect(nftOwner).listItem(
+      BasicNFTAddress,
+      tokenId,
+      LISTING_PRICE
+    );
+    await tx.wait(1);
+
+    await expect(
+      NFTMarketPlace.listItem(BasicNFTAddress, tokenId, LISTING_PRICE)
+    ).to.be.revertedWith("AlreadyListed");
+  });
+
+  describe("testing cancel listing", async () => {
+    it("reverts if the item is not listed", async () => {
+      await expect(
+        NFTMarketPlace.cancelListing(BasicNFTAddress, tokenId)
+      ).to.be.revertedWith("NotListed");
+    });
+
+    it("reverts if the request sender is not the owner of NFT", async () => {
+      await BasicNFT.connect(nftOwner).approve(
+        NFTMarketPlaceAddress,
+        tokenId
+      );
+
+      let tx = await NFTMarketPlace.connect(nftOwner).listItem(
+        BasicNFTAddress,
+        tokenId,
+        LISTING_PRICE
+      );
+      await tx.wait(1);
+      await expect(
+        NFTMarketPlace.connect(user).cancelListing(
+          BasicNFTAddress,
+          tokenId
+        )
+      ).to.be.revertedWith("OnlyOwnerCanListItems()");
+    });
+
+    it("checks if the listing was deleted", async () => {
+      await BasicNFT.connect(nftOwner).approve(
+        NFTMarketPlaceAddress,
+        tokenId
+      );
+
+      let tx = await NFTMarketPlace.connect(nftOwner).listItem(
+        BasicNFTAddress,
+        tokenId,
+        LISTING_PRICE
+      );
+      await tx.wait(1);
+
+      let listedItem = await NFTMarketPlace.getListing(
+        BasicNFTAddress,
+        tokenId
+      );
+
+      expect(listedItem.seller).to.equal(nftOwner.address);
+      tx = await NFTMarketPlace.connect(nftOwner).cancelListing(
+        BasicNFTAddress,
+        tokenId
+      );
+      await tx.wait(1);
+
+      listedItem = await NFTMarketPlace.getListing(
+        BasicNFTAddress,
+        tokenId
+      );
+
+      expect(listedItem.seller).to.equal(NULL_ADDRESS);
+    });
+
+    it("checks if the deleting event was emitted", async () => {
+      await BasicNFT.connect(nftOwner).approve(
+        NFTMarketPlaceAddress,
+        tokenId
+      );
+
+      let tx = await NFTMarketPlace.connect(nftOwner).listItem(
+        BasicNFTAddress,
+        tokenId,
+        LISTING_PRICE
+      );
+      await tx.wait(1);
+
+      tx = await NFTMarketPlace.connect(nftOwner).cancelListing(
+        BasicNFTAddress,
+        tokenId
+      );
+      await tx.wait(1);
+
+      const events = await NFTMarketPlace.queryFilter("ListingDeleted");
+      expect(events[0].args.nftAddress).to.equal(BasicNFTAddress);
+      expect(events[0].args.tokenId).to.equal(tokenId);
+    });
   });
 });
