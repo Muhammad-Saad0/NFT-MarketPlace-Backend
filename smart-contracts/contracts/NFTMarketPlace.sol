@@ -146,4 +146,10 @@ contract NFTMarketPlace {
     function getProceeds(address seller) external view returns (uint256) {
         return s_proceeds[seller];
     }
+
+    // * receive function
+    receive() external payable {}
+
+    // * fallback function
+    fallback() external payable {}
 }
