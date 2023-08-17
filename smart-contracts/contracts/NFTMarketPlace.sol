@@ -85,7 +85,7 @@ contract NFTMarketPlace {
         uint256 tokenId
     ) external payable isListed(nftAddress, tokenId) {
         Listing memory listedItem = s_listings[nftAddress][tokenId];
-        if (listedItem.price < msg.value) {
+        if (listedItem.price > msg.value) {
             revert PriceNotMet(nftAddress, tokenId);
         }
 
