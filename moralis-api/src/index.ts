@@ -8,6 +8,7 @@ import ParseServer from 'parse-server';
 import http from 'http';
 import ngrok from 'ngrok';
 import { streamsSync } from '@moralisweb3/parse-server';
+import { parseDashboard } from './parseDashboard';
 
 export const app = express();
 
@@ -23,11 +24,13 @@ app.use(cors());
 app.use(
   streamsSync(parseServer, {
     apiKey: config.MORALIS_API_KEY,
-    webhookUrl: '/streams',
+    webhookUrl: config.STREAMS_WEBHOOK_URL,
   }),
 );
 
 app.use(`/server`, parseServer.app);
+
+app.use(`/dashboard`, parseDashboard);
 
 const httpServer = http.createServer(app);
 httpServer.listen(config.PORT, async () => {

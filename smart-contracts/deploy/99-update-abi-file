@@ -1,0 +1,16 @@
+const fs = require("fs");
+const { ethers } = require("hardhat");
+
+const ABI_FILE = "C:/Users/saadm/Desktop/practice-api/abi.json";
+
+const updateAbiFile = async () => {
+  const NFTMarketPlace = await ethers.getContract("NFTMarketPlace");
+  fs.writeFileSync(
+    ABI_FILE,
+    NFTMarketPlace.interface.format(ethers.utils.FormatTypes.json)
+  );
+};
+
+module.exports = () => {
+  updateAbiFile();
+};

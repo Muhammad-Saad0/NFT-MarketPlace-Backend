@@ -16,6 +16,7 @@
     "graphql-ws": "^5.10.1",
     "moralis": "^2.22.5",
     "ngrok": "^4.3.3",
+    "parse-dashboard": "^5.1.0",
     "parse-server": "^5.4.0",
     "redis": "^4.6.7"
   },

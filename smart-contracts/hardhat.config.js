@@ -20,8 +20,12 @@ module.exports = {
     ],
   },
   networks: {
+    hardhat: {
+      chainId: 1337,
+    },
+
     localhost: {
-      chainId: 31337,
+      chainId: 1337,
     },
     sepolia: {
       url: SEPOLIA_RPC_URL !== undefined ? SEPOLIA_RPC_URL : "",
